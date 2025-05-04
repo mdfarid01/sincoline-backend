@@ -4,7 +4,7 @@ import bcryptjs from 'bcryptjs'
 import verifyEmailTemplate from '../utils/verifyEmailTemplate.js'
 import generateAccessToken from '../utils/generateAccessToken.js'
 import generateRefreshToken from '../utils/generateRefreshToken.js'
-
+import uploadImageCloud from '../utils/uploadImageCloud.js'
 
 export async function registerUserController(request,response){
     try {
@@ -172,5 +172,76 @@ export async function loginController(request,response){
             error : true,
             success : false
         })
+    }
+}
+
+//logout controller
+
+export async function logoutController(request,response){
+    try {
+        const userid = request.userId //coming from middleware
+
+
+        const cookiesOption = {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'none',
+       }
+
+        response.clearCookie("accessToken",cookiesOption)
+        response.clearCookie("refreshToken",cookiesOption)
+
+        const removeRefreshToken = await UserModel.findByIdAndUpdate(userid,{
+            refresh_token : ""
+        })
+
+
+
+       return response.json({
+            message : "Logout successfully",
+            error : false,
+            success : true
+        })
+
+    } catch (error){
+        return response.status(500).json({
+            message : error.message || error,
+            error : true,
+            success : false
+        })
+    }
+}
+
+
+//upload user avatar
+
+export async function uploadAvatarController(request,response){
+    try {
+        const userId= request.userId //coming from auth middleware
+
+        const image= request.file //coming from multer middleware
+
+        const upload = await uploadImageCloud(image)
+        
+        const updateUser = await UserModel.findByIdAndUpdate(userId,{
+            avatar: upload.url
+        })
+
+        return response.json({
+            message : "Image upload successfully",
+            data : {
+                _id : userId,
+                avatar: upload.url
+            }
+        })
+
+
+    } catch (error) {
+        return response.status(500).json({
+            message: error.message || error,
+            error: true,
+            success: false
+        })
+        
     }
 }
