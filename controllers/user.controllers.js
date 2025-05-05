@@ -1,6 +1,6 @@
 import sendEmail from '../config/sendEmail.js'
 import UserModel from '../models/user.model.js'
-import bcryptjs from 'bcryptjs'
+import bcryptjs, { hash } from 'bcryptjs'
 import verifyEmailTemplate from '../utils/verifyEmailTemplate.js'
 import generateAccessToken from '../utils/generateAccessToken.js'
 import generateRefreshToken from '../utils/generateRefreshToken.js'
@@ -233,6 +233,46 @@ export async function uploadAvatarController(request,response){
                 _id : userId,
                 avatar: upload.url
             }
+        })
+
+
+    } catch (error) {
+        return response.status(500).json({
+            message: error.message || error,
+            error: true,
+            success: false
+        })
+        
+    }
+}
+
+
+//update user details
+
+export async function updateUserController(request,response){
+    try {
+        const userId= request.userId //coming from auth middleware
+        const {name,email,mobile,password}= request.body
+        
+        let hashPassword = " "
+
+        if(password){
+            const salt = await bcryptjs.genSalt(10)
+            hashPassword = await bcryptjs.hash(password,salt)
+        }
+
+        const updateUser = await UserModel.updateOne({_id : userId},{
+            ...(name && {name : name}),
+            ...(email && {email : email}),
+            ...(mobile && {mobile : mobile}),
+            ...(password && {password : hashPassword}),
+        })
+
+        return response.json({
+            message : "User update successfully",
+            error : false,
+            success : true,
+            data : updateUser
         })
 
 
