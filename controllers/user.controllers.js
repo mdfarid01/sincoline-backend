@@ -5,6 +5,9 @@ import verifyEmailTemplate from '../utils/verifyEmailTemplate.js'
 import generateAccessToken from '../utils/generateAccessToken.js'
 import generateRefreshToken from '../utils/generateRefreshToken.js'
 import uploadImageCloud from '../utils/uploadImageCloud.js'
+import generatedOtp from '../utils/generatedOtp.js'
+import forgotPasswordTemplate from '../utils/forgotPasswordTemplate.js'
+
 
 export async function registerUserController(request,response){
     try {
@@ -285,3 +288,57 @@ export async function updateUserController(request,response){
         
     }
 }
+
+
+
+//forgot password controller
+
+export async function forgotPasswordController(request,response){
+    try {
+        const { email }  = request.body
+
+        const user = await UserModel.findOne({ email })
+
+        if(!user){
+            return response.status(400).json({
+                message : "Email not available",
+                error : true,
+                success : false
+
+            })
+        }
+
+        const otp = generatedOtp()
+        const expireTime = new Date() + 60 * 60 * 1000  //1hr
+
+        const update = await UserModel.findByIdAndUpdate(user._id,{
+            forgot_password_otp : otp,
+            forgot_password_expiry : new Date(expireTime).toISOString()
+        })
+
+        await sendEmail({
+            sendTo : email,
+            subject : "Forgot password from SencoLine",
+            html : forgotPasswordTemplate({
+                name : user.name,
+                otp : otp
+            })
+        })
+
+        return response.json({
+            message : "check your email",
+            error : false,
+            success : true
+        })
+
+    } catch (error) {
+        return response.status(500).json({
+            message : error.message || error,
+            error : true,
+            success : false
+        })
+        
+    }
+}
+
+
